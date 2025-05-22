@@ -1,11 +1,13 @@
 = sycl_khr_command_graph
 
-The graph abstraction defines an explicitly lazy execution model by decoupling
-command creation from submission. These concepts are potentially tied together
-in SYCL implementations that eagerly submit work to a device when a
-command-group is submitted to a queue. By providing a prior construction stage
-before a workload of commands begins execution on the device, submission of
-multiple commands can happen in a single submission call instead of many,
+== Overview
+
+The command graph abstraction defines an explicitly lazy execution model by
+decoupling command creation from submission. These concepts are potentially
+tied together in SYCL implementations that eagerly submit work to a device when
+a command-group is submitted to a queue. By providing a prior construction
+stage before a workload of commands begins execution on the device, submission
+of multiple commands can happen in a single submission call instead of many,
 reducing the overhead of multiple independent command submissions. Deferral of
 command submission can also allow for the SYCL implementation to optimize
 dependencies within the user defined graph, which may improve concurrency
@@ -14,6 +16,8 @@ and other performance metrics.
 == Dependencies
 
 This extension has no dependencies on other extensions.
+
+== Contributors
 
 == Feature test macro
 
@@ -29,6 +33,8 @@ table below.
 |1
 |Initial version of this extension.
 |===
+
+== Backend support status
 
 == Usage example
 
@@ -235,8 +241,6 @@ public:
   template<typename T>
   node add(T cgf, const property_list& propList = {});
 
-  node add(dynamic_command_group& dynamicCG, const property_list& propList = {});
-
   void make_edge(node& src, node& dest);
 
   void print_graph(std::string path, bool verbose = false) const;
@@ -352,6 +356,8 @@ public:
 ==== New Handler Member Functions
 
 ===== Additional member functions of the `sycl::handler` class
+
+=== Thread Safety
 
 === Exception Safety
 
