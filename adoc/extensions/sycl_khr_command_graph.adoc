@@ -1,4 +1,4 @@
-= sycl_khr_command_graph
+= sycl_khr_graph
 
 == Overview
 
