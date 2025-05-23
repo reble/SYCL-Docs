@@ -19,7 +19,7 @@ This extension has no dependencies on other extensions.
 
 == Contributors
 
-== Feature test macro
+== Feature Test Macro
 
 An implementation supporting this extension must predefine the macro
 [code]#SYCL_KHR_COMMAND_GRAPH# to one of the values defined in the
@@ -34,7 +34,7 @@ table below.
 |Initial version of this extension.
 |===
 
-== Backend support status
+== Backend Support Status
 
 == Usage example
 
@@ -137,7 +137,7 @@ int main() {
 ----
 
 This extension adds new classes `command_graph` and `node` which follows the
-{crs}[common reference semantics] of other SYCL runtime classes.
+common reference semantics (see <<sec:reference-semantics>>) of other SYCL runtime classes.
 
 === SYCL Graph Terminology [[terminology]]
 
