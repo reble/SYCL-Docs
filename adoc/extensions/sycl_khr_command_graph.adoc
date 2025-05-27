@@ -33,7 +33,7 @@ This extension adds new classes `command_graph` and `node` which follows the
 
 
 [[sec:khr-graph-node]]
-=== Node class
+== Node class
 
 The [code]#node# class encapsulates a single command within a graph, such as a
 kernel or memory operation.
@@ -41,14 +41,14 @@ kernel or memory operation.
 The [code]#node# class provides the common reference semantics as defined in
 <<sec:reference-semantics>>.
 
-==== Supported node types
+=== Supported node types
 
 The command types supported by the [code]#node# class are listed in
 <<table.node.supported.commands>>.
 
 [[table.node.supported.commands]]
 .Commands supported by the [code]#node# class
-[width="100%",options="header",separator="@",cols="65%,35%"]
+[width="100%",options="header",separator="@",cols="20%,30%,50%"]
 |====
 @ Command @ Node type @ Description
 a@ None
@@ -130,43 +130,15 @@ a@ Represents a SYCL host-task execution.
 |====
 
 
-==== Node class interface
+=== Node class interface
 
-[source, c++, role=synopsis]
+[source,,linenums]
 ----
-namespace sycl::khr {
-enum class node_type : /* unspecified */ {
-  empty,
-  subgraph,
-  kernel,
-  memcpy,
-  memset,
-  memfill,
-  prefetch,
-  memadvise,
-  host_task,
-};
-
-class node {
-public:
-  node() = delete;
-  
-  /* -- common interface members -- */
-
-  node_type get_type() const noexcept;
-
-  std::vector<node> get_predecessors() const noexcept;
-
-  std::vector<node> get_successors() const noexcept;
-
-  static node get_node_from_event(event nodeEvent);
-};
-
-}  // sycl::khr
+include::{header_dir}/extensions/khr_graph/node.h[lines=4..-1]
 ----
 
-[[sec:khr-graph-node-member-funcs]]
-==== Member Functions
+[[subsec:khr-graph-node-member-funcs]]
+=== Member Functions
 
 .[apidef]#khr::node::get_type#
 [source, role=synopsis,id=api:khr-node-get-type]
@@ -198,8 +170,8 @@ _Returns:_ A list of the successor nodes which directly depend on this node.
 
 '''
 
-[[sec:khr-graph-node-static-member-funcs]]
-==== Static member functions
+[[subsec:khr-graph-node-static-member-funcs]]
+=== Static member functions
 
 .[apidef]#khr::node::get_node_from_event#
 [source, role=synopsis,id=api:khr-node-get-node-from-event]
@@ -218,15 +190,15 @@ _Throws:_ An [code]#exception# with error code [code]#errc::invalid# if
 
 '''
 
-[[sec:khr-node-properties]]
-==== Node properties
+[[subsec:khr-node-properties]]
+=== Node properties
 
 The properies that can be provided when adding a [code]#node# to a graph are
 described in <<table.properties.graph.node>>.
 
 [[table.properties.graph.node]]
 .Properties supported by the [code]#node# class
-[width="100%",options="header",separator="@",cols="65%,35%"]
+[width="100%",options="header",separator="@",cols="45%,55%"]
 |====
 @ Property @ Description
 a@
@@ -234,7 +206,7 @@ a@
 ----
 khr::property::node::depends_on
 ----
-    a@ The [code]#depends_on# property can be used to specify dependencies for nodes added via
+a@ The [code]#depends_on# property can be used to specify dependencies for nodes added via
 calls to [code]#command_graph::add#. This creates edges in the graph between the node being
 added and the dependent nodes.
 a@
@@ -242,7 +214,7 @@ a@
 ----
 khr::property::node::depends_on_all_leaves
 ----
-    a@ The [code]#depends_on_all_leaves# property specifies that the node being added should
+a@ The [code]#depends_on_all_leaves# property specifies that the node being added should
 depend on every node currently in the graph which is a leaf node. A leaf node is a node
 in the graph does not have any successors (no other nodes depend on it).
 
@@ -262,7 +234,7 @@ a@
 template<typename... NodeTN>
 khr::property::node::depends_on::depends_on(NodeTN... nodes)
 ----
-    a@ Constructs a [code]#depends_on# property instance with a copy of all the
+a@ Constructs a [code]#depends_on# property instance with a copy of all the
 [code]#node# objects in parameter pack [code]#nodes#.
 
 a@
@@ -270,7 +242,7 @@ a@
 ----
 khr::property::node::depends_on_all_leaves()
 ----
-    a@ Constructs a [code]#depends_on_all_leaves# property instance.
+a@ Constructs a [code]#depends_on_all_leaves# property instance.
 
 |====
 
