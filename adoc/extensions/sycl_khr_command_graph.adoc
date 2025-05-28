@@ -35,8 +35,17 @@ This extension adds new classes `command_graph` and `node` which follows the
 [[sec:khr-graph-node]]
 == Node class
 
-The [code]#node# class encapsulates a single command within a graph, such as a
-kernel or memory operation.
+The [code]#node# class encapsulates a single command within a graph.
+This can include normal SYCL commands such as kernels or memory operations, or
+even executing another [code]#command_graph# as a subgraph.
+
+Nodes may also contain no commands in which case they can be used to create
+transitive dependencies between other nodes, similar to a barrier.
+
+Dependencies between nodes are defined by their edges which represent a "happens
+before" relationship.
+Edges can either be specified explicitly or inferred from the existing SYCL
+mechanisms for defining dependencies between <<command-group, command-groups>>.
 
 The [code]#node# class provides the common reference semantics as defined in
 <<sec:reference-semantics>>.
@@ -57,17 +66,15 @@ a@
 ----
 khr::node_type::empty
 ----
-a@ An empty node has no commands to execute but can still be used to create
-dependencies between nodes ordered before or after it.
-
+a@ An empty node contains no commands.
 a@ Graph execution
 a@
 [source]
 ----
 khr::node_type::subgraph
 ----
-a@ A subgraph node embeds an executable graph for execution as part of a parent
-graph.
+a@ A subgraph node embeds an executable [code]#command_graph# for execution as
+part of a parent graph.
 
 a@ Kernel
 a@
@@ -75,8 +82,7 @@ a@
 ----
 khr::node_type::kernel
 ----
-a@ A kernel node represents a SYCL kernel execution, such as
-[code]#handler::parallel_for#.
+a@ Represents a SYCL kernel execution, such as [code]#handler::parallel_for#.
 
 a@ Memory Copy
 a@
@@ -125,7 +131,7 @@ a@
 ----
 khr::node_type::host_task
 ----
-a@ Represents a SYCL host-task execution.
+a@ Represents a SYCL <<host-task, Host Task>> command.
 
 |====
 
