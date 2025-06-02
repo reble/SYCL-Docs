@@ -7,8 +7,7 @@ This extension has no dependencies on other extensions.
 == Feature test macro
 
 An implementation supporting this extension must predefine the macro
-[code]#SYCL_KHR_COMMAND_GRAPH# to one of the values defined in the
-table below.
+[code]#SYCL_KHR_COMMAND_GRAPH# to one of the values defined in the table below.
 
 [%header,cols="1,5"]
 |===
@@ -39,66 +38,226 @@ This extension adds new classes `command_graph` and `node` which follows the
 
 ==== Sub-Graph
 
-=== Node
 
-[source, c++]
+[[sec:khr-graph-node]]
+== Node class
+
+The [code]#node# class encapsulates a single command within a graph.
+This can include normal SYCL commands such as kernels or memory operations, or
+even executing another [code]#command_graph# as a subgraph.
+
+Nodes may also contain no commands in which case they can be used to create
+transitive dependencies between other nodes, similar to a barrier.
+
+Dependencies between nodes are defined by their edges which represent a "happens
+before" relationship.
+Edges can either be specified explicitly or inferred from the existing SYCL
+mechanisms for defining dependencies between <<command-group, command-groups>>.
+
+The [code]#node# class provides the common reference semantics as defined in
+<<sec:reference-semantics>>.
+
+=== Supported node types
+
+The command types supported by the [code]#node# class are listed in
+<<table.node.supported.commands>>.
+
+[[table.node.supported.commands]]
+.Commands supported by the [code]#node# class
+[width="100%",options="header",separator="@",cols="20%,30%,50%"]
+|====
+@ Command @ Node type @ Description
+a@ None
+a@
+[source]
 ----
-namespace sycl::khr {
-enum class node_type {
-  empty,
-  subgraph,
-  kernel,
-  memcpy,
-  memset,
-  memfill,
-  prefetch,
-  memadvise,
-  host_task,
-};
+khr::node_type::empty
+----
+a@ An empty node contains no commands.
+a@ Graph execution
+a@
+[source]
+----
+khr::node_type::subgraph
+----
+a@ A subgraph node embeds an executable [code]#command_graph# for execution as
+part of a parent graph.
 
-class node {
-public:
-  node() = delete;
+a@ Kernel
+a@
+[source]
+----
+khr::node_type::kernel
+----
+a@ Represents a SYCL kernel execution, such as [code]#handler::parallel_for#.
 
-  node_type get_type() const;
+a@ Memory Copy
+a@
+[source]
+----
+khr::node_type::memcpy
+----
+a@ Represents a memory copy operation, either [code]#handler::memcpy# or
+[code]#handler::copy#.
 
-  std::vector<node> get_predecessors() const;
+a@ Memset
+a@
+[source]
+----
+khr::node_type::memset
+----
+a@ Represents a memory set operation, such as [code]#handler::memset#.
 
-  std::vector<node> get_successors() const;
+a@ Memfill
+a@
+[source]
+----
+khr::node_type::memfill
+----
+a@ Represents a memory fill operation, such as [code]#handler::fill#.
 
-  static node get_node_from_event(event nodeEvent);
-};
+a@ Prefetch
+a@
+[source]
+----
+khr::node_type::prefetch
+----
+a@ Represents a prefetch operation, such as [code]#handler::prefetch#.
 
-}  // sycl::khr
+a@ Memadvise
+a@
+[source]
+----
+khr::node_type::memadvise
+----
+a@ Represents a memory advise operation, such as [code]#handler::memadvise#.
+
+a@ Host-task
+a@
+[source]
+----
+khr::node_type::host_task
+----
+a@ Represents a SYCL <<host-task, Host Task>> command.
+
+|====
+
+
+=== Node class interface
+
+[source,,linenums]
+----
+include::{header_dir}/extensions/khr_graph/node.h[lines=4..-1]
 ----
 
-:crs: https://www.khronos.org/registry/SYCL/specs/sycl-2020/html/sycl-2020.html#sec:reference-semantics
+[[subsec:khr-graph-node-member-funcs]]
+=== Member Functions
 
-==== Node Member Functions
-
-==== Depends-On Property
-
-[source,c++]
+.[apidef]#khr::node::get_type#
+[source, role=synopsis,id=api:khr-node-get-type]
 ----
-namespace sycl::khr::property::node {
-class depends_on {
-  public:
-    template<typename... NodeTN>
-    depends_on(NodeTN... nodes);
-};
-}
+node_type get_type() const noexcept
 ----
 
-==== Depends-On-All-Leaves Property
-[source,c++]
+_Returns:_ A value representing the type of command this node represents.
+
+'''
+
+.[apidef]#khr::node::get_predecessors#
+[source, role=synopsis,id=api:khr-node-get-predecessors]
 ----
-namespace sycl::khr::property::node {
-class depends_on_all_leaves {
-  public:
-    depends_on_all_leaves() = default;
-};
-}
+std::vector<node> get_predecessors() const noexcept
 ----
+
+_Returns:_ A list of the predecessor nodes which this node directly depends on.
+
+'''
+
+.[apidef]#khr::node::get_successors#
+[source, role=synopsis,id=api:khr-node-get-successors]
+----
+std::vector<node> get_successors() const noexcept
+----
+
+_Returns:_ A list of the successor nodes which directly depend on this node.
+
+'''
+
+[[subsec:khr-graph-node-static-member-funcs]]
+=== Static member functions
+
+.[apidef]#khr::node::get_node_from_event#
+[source, role=synopsis,id=api:khr-node-get-node-from-event]
+----
+static node get_node_from_event(event nodeEvent)
+----
+
+_Effects:_ Finds the node associated with an event [code]#nodeEvent# created
+from a submission to a queue in the recording state.
+
+_Returns:_ Graph node that was created when the command that returned
+[code]#nodeEvent# was submitted.
+
+_Throws:_ An [code]#exception# with error code [code]#errc::invalid# if
+[code]#nodeEvent# is not associated with a graph node.
+
+'''
+
+[[subsec:khr-node-properties]]
+=== Node properties
+
+The properies that can be provided when adding a [code]#node# to a graph are
+described in <<table.properties.graph.node>>.
+
+[[table.properties.graph.node]]
+.Properties supported by the [code]#node# class
+[width="100%",options="header",separator="@",cols="45%,55%"]
+|====
+@ Property @ Description
+a@
+[source]
+----
+khr::property::node::depends_on
+----
+a@ The [code]#depends_on# property can be used to specify dependencies for nodes added via
+calls to [code]#command_graph::add#. This creates edges in the graph between the node being
+added and the dependent nodes.
+a@
+[source]
+----
+khr::property::node::depends_on_all_leaves
+----
+a@ The [code]#depends_on_all_leaves# property specifies that the node being added should
+depend on every node currently in the graph which is a leaf node. A leaf node is a node
+in the graph does not have any successors (no other nodes depend on it).
+
+|====
+
+The constructors of the node property classes are listed in the
+<<table.constructors.properties.graph.node>> table.
+
+[[table.constructors.properties.graph.node]]
+.Constructors of the [code]#node# [code]#property# classes
+[width="100%",options="header",separator="@",cols="65%,35%"]
+|====
+@ Constructor @ Description
+a@
+[source]
+----
+template<typename... NodeTN>
+khr::property::node::depends_on::depends_on(NodeTN... nodes)
+----
+a@ Constructs a [code]#depends_on# property instance with a copy of all the
+[code]#node# objects in parameter pack [code]#nodes#.
+
+a@
+[source]
+----
+khr::property::node::depends_on_all_leaves()
+----
+a@ Constructs a [code]#depends_on_all_leaves# property instance.
+
+|====
 
 === Graph
 
