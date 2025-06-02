@@ -20,7 +20,7 @@ This extension has no dependencies on other extensions.
 
 == Contributors
 
-== Feature Test Macro
+== Feature test macro
 
 An implementation supporting this extension must predefine the macro
 [code]#SYCL_KHR_GRAPH# to one of the values defined in the table below.
@@ -34,7 +34,7 @@ An implementation supporting this extension must predefine the macro
 |Initial version of this extension.
 |===
 
-== Backend Support Status
+== Backend support status
 
 == Usage example
 
@@ -43,13 +43,14 @@ This extension adds new classes `command_graph` and `node` which follows the
 common reference semantics (see <<sec:reference-semantics>>) of other SYCL
 runtime classes.
 
-=== SYCL Graph Terminology [[terminology]]
+[[sec:khr-graph-terminology]]
+== KHR graph terminology
 
-==== Explicit Graph Building API
+=== Explicit graph building api
 
-==== Queue Recording API
+=== Queue recording api
 
-==== Sub-Graph
+=== Sub-graph
 
 
 [[sec:khr-graph-node]]
@@ -272,7 +273,7 @@ a@ Constructs a [code]#depends_on_all_leaves# property instance.
 
 |====
 
-=== Graph
+== Graph
 
 [source, c++]
 ----
@@ -328,11 +329,12 @@ public:
 }  // namespace sycl::khr
 ----
 
-==== Graph State
+=== Graph state
 
-==== Graph Properties [[graph-properties]]
+[[subsec:khr-graph-properties]]
+=== Graph properties
 
-===== No-Cycle-Check Property
+==== No-cycle-check property
 
 [source,c++]
 ----
@@ -344,7 +346,8 @@ class no_cycle_check {
 }
 ----
 
-===== Assume-Buffer-Outlives-Graph Property [[assume-buffer-outlives-graph-property]]
+[[subsec:assume-buffer-outlives-graph-property]]
+==== Assume-buffer-outlives-graph property
 
 [source,c++]
 ----
@@ -356,7 +359,8 @@ class assume_buffer_outlives_graph {
 }
 ----
 
-==== Enable-Profiling Property [[enable-profiling]]
+[[subsec:enable-profiling]]
+=== Enable-profiling property
 
 [source,c++]
 ----
@@ -368,15 +372,15 @@ class enable_profiling {
 }
 ----
 
-==== Graph Member Functions
+=== Graph member functions
 
-===== Constructor of the `command_graph` class
+==== Constructor of the `command_graph` class
 
-===== Member functions of the `command_graph` class
+==== Member functions of the `command_graph` class
 
-===== Member functions of the `command_graph` class for queue recording
+==== Member functions of the `command_graph` class for queue recording
 
-=== Queue Class Modifications
+== Queue class modifications
 
 [source, c++]
 ----
@@ -411,36 +415,37 @@ public:
 } // namespace sycl
 ----
 
-==== Queue State
+=== Queue state
 
-==== Transitive Queue Recording
+=== Transitive queue recording
 
-===== Example
+==== Example
 
-==== Queue Properties
+=== Queue properties
       
-==== New Queue Member Functions
+=== New queue member functions
 
-===== Additional member functions of the `sycl::queue` class
+==== Additional member functions of the `sycl::queue` class
 
-==== New Handler Member Functions
+=== New handler member functions
 
-===== Additional member functions of the `sycl::handler` class
+==== Additional member functions of the `sycl::handler` class
 
-=== Thread Safety
+== Thread safety
 
-=== Exception Safety
+== Exception safety
 
-=== Command-Group Function Limitations
+== Command-group function limitations
 
-=== Host Tasks [[host-tasks]]
+[[sec:khr-graph-host-tasks]]
+== Host tasks
 
-=== Queue Behavior In Recording Mode
+== Queue behavior in recording mode
 
-==== Event Limitations
+=== Event limitations
 
-==== Queue Limitations
+=== Queue limitations
 
-==== Buffer Limitations
+=== Buffer limitations
 
-==== Error Handling
+=== Error handling
