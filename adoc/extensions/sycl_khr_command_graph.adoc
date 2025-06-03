@@ -20,9 +20,9 @@ An implementation supporting this extension must predefine the macro
 
 == Usage example
 
-The example below demonstrates the usage of this extension using the 
-<<subsec:khr-graph-queue-recording-api, queue recording api>> and
-<<sec:usm, Unified Shared Memory>> (USM).
+The example below demonstrates the usage of this extension using the
+<<subsec:khr-graph-queue-recording-api, queue recording api>> and <<sec:usm,
+Unified Shared Memory>> (USM).
 
 [source,,linenums]
 ----
