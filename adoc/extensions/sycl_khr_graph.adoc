@@ -39,6 +39,14 @@ An implementation supporting this extension must predefine the macro
 
 == Usage example
 
+The example below demonstrates the usage of this extension using the
+<<subsec:khr-graph-queue-recording-api, queue recording api>> and <<sec:usm,
+Unified Shared Memory>> (USM).
+
+[source,,linenums]
+----
+include::{code_dir}/graph.cpp[lines=4..-1]
+----
 
 This extension adds new classes `command_graph` and `node` which follows the
 common reference semantics (see <<sec:reference-semantics>>) of other SYCL
@@ -49,6 +57,7 @@ runtime classes.
 
 === Explicit graph building api
 
+[[subsec:khr-graph-queue-recording-api]]
 === Queue recording api
 
 === Sub-graph
