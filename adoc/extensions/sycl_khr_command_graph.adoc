@@ -20,7 +20,9 @@ An implementation supporting this extension must predefine the macro
 
 == Usage example
 
-The example below demonstrates the usage of this extension.
+The example below demonstrates the usage of this extension using the 
+<<subsec:khr-graph-queue-recording-api, queue recording api>> and
+<<sec:usm, Unified Shared Memory>> (USM).
 
 [source,,linenums]
 ----
@@ -34,6 +36,7 @@ This extension adds new classes `command_graph` and `node` which follows the
 
 ==== Explicit Graph Building API
 
+[[subsec:khr-graph-queue-recording-api]]
 ==== Queue Recording API
 
 ==== Sub-Graph

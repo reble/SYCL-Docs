@@ -21,7 +21,10 @@ int main() {
 
   myGraph.begin_recording(myQueue);
 
-  // Record an asynchronous kernel to compute even iterations
+  // Unroll iterative 1D solver by a factor of two to enable
+  // recording into an immutable graph.
+  // 
+  // Record an asynchronous kernel to compute even timesteps
   myQueue.submit([&](handler& cgh) {
     // Enqueue a parallel kernel iterating on a N 1D iteration space
     cgh.parallel_for(range<1>{N - 2}, [=](id<1> index) {
@@ -31,7 +34,7 @@ int main() {
 
   std::swap(AOld, ANew);
 
-  // Record an asynchronous kernel to compute odd iterations
+  // Record an asynchronous kernel to compute odd timesteps
   myQueue.submit([&](handler& cgh) {
     // Enqueue a parallel kernel iterating on a N 1D iteration space
     cgh.parallel_for(range<1>{N - 2}, [=](id<1> index) {
@@ -52,7 +55,7 @@ int main() {
     });
   });
 
-  // Replay linear graph which holds two iterations
+  // Replay linear graph to calculate Iter timesteps
   for (size_t i = 0; i < Iter; i += 2) myQueue.khr_graph(myExecGraph);
 
   myQueue.wait();
