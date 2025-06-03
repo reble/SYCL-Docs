@@ -23,7 +23,7 @@ int main() {
 
   // Unroll iterative 1D solver by a factor of two to enable
   // recording into an immutable graph.
-  // 
+  //
   // Record an asynchronous kernel to compute even timesteps
   myQueue.submit([&](handler& cgh) {
     // Enqueue a parallel kernel iterating on a N 1D iteration space
