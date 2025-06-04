@@ -1,13 +1,30 @@
-= sycl_khr_command_graph
+= sycl_khr_graph
+
+== Overview
+
+The graph abstraction defines an explicitly lazy execution model by decoupling
+command creation from submission.
+These concepts are potentially tied together in SYCL implementations that
+eagerly submit work to a device when a <<command-group>> is submitted to a
+queue.
+By providing a prior construction stage before a workload of commands begins
+execution on the device, submission of multiple commands can happen in a single
+submission call instead of many, reducing the overhead of multiple independent
+command submissions.
+Deferral of command submission can also allow for the SYCL implementation to
+optimize dependencies within the user defined graph, which may improve
+concurrency and other performance metrics.
 
 == Dependencies
 
 This extension has no dependencies on other extensions.
 
+== Contributors
+
 == Feature test macro
 
 An implementation supporting this extension must predefine the macro
-[code]#SYCL_KHR_COMMAND_GRAPH# to one of the values defined in the table below.
+[code]#SYCL_KHR_GRAPH# to one of the values defined in the table below.
 
 [%header,cols="1,5"]
 |===
@@ -18,18 +35,23 @@ An implementation supporting this extension must predefine the macro
 |Initial version of this extension.
 |===
 
+== Backend support status
+
 == Usage example
 
+
 This extension adds new classes `command_graph` and `node` which follows the
-{crs}[common reference semantics] of other SYCL runtime classes.
+common reference semantics (see <<sec:reference-semantics>>) of other SYCL
+runtime classes.
 
-=== SYCL Graph Terminology [[terminology]]
+[[sec:khr-graph-terminology]]
+== KHR graph terminology
 
-==== Explicit Graph Building API
+=== Explicit graph building api
 
-==== Queue Recording API
+=== Queue recording api
 
-==== Sub-Graph
+=== Sub-graph
 
 
 [[sec:khr-graph-node]]
@@ -671,7 +693,7 @@ a@ Constructs an [code]#enable_profiling# property instance.
 |====
 
 
-=== Queue Class Modifications
+== Queue class modifications
 
 [source, c++]
 ----
@@ -706,36 +728,39 @@ public:
 } // namespace sycl
 ----
 
-==== Queue State
+=== Queue state
 
-==== Transitive Queue Recording
+=== Transitive queue recording
 
-===== Example
+==== Example
 
 [[subsec:khr-graph-queue-properties]]
 ==== Queue Properties
       
-==== New Queue Member Functions
+=== New queue member functions
 
-===== Additional member functions of the `sycl::queue` class
+==== Additional member functions of the `sycl::queue` class
 
-==== New Handler Member Functions
+=== New handler member functions
 
-===== Additional member functions of the `sycl::handler` class
+==== Additional member functions of the `sycl::handler` class
 
-=== Exception Safety
+== Thread safety
 
-=== Command-Group Function Limitations
+== Exception safety
 
-=== Host Tasks [[host-tasks]]
+== Command-group function limitations
 
-=== Queue Behavior In Recording Mode
+[[sec:khr-graph-host-tasks]]
+== Host tasks
 
-==== Event Limitations
+== Queue behavior in recording mode
 
-==== Queue Limitations
+=== Event limitations
+
+=== Queue limitations
 
 [[subsec:khr-graph-buffer-limitations]]
-==== Buffer Limitations
+=== Buffer limitations
 
-==== Error Handling
+=== Error handling
