@@ -289,10 +289,10 @@ which nodes representing device commands will be executed.
 The execution of a graph is considered complete when all of its nodes have
 completed.
 
-A [code]#command_graph# is built up by either recording queue submissions or
-explicitly adding nodes, then once the graph is complete, the graph instance is
-finalized into an executable variant - a fixed snapshot of the graph which can
-no longer have nodes added to it.
+A [code]#command_graph# is built up by one or both of recording queue
+submissions or explicitly adding nodes, then once the graph is complete, the
+graph instance is finalized into an executable variant - a fixed snapshot of the
+graph which can no longer have nodes added to it.
 After finalization the graph can be submitted for execution on a queue one or
 more times with reduced launch overhead.
 
