@@ -290,15 +290,17 @@ The execution of a graph is considered complete when all of its nodes have
 completed.
 
 A [code]#command_graph# is built up by either recording queue submissions or
-explicitly adding nodes, then once the user is happy that the graph is complete,
-the graph instance is finalized into an executable variant - a fixed snapshot of
-the graph which can no longer have nodes added to it.
-Finalization may be a computationally expensive operation as the runtime may be
-able to perform optimizations based on the graph structure.
-However it can also perform work ahead of time that would normally be needed
-immediately prior to command execution.
+explicitly adding nodes, then once the graph is complete, the graph instance is
+finalized into an executable variant - a fixed snapshot of the graph which can
+no longer have nodes added to it.
 After finalization the graph can be submitted for execution on a queue one or
 more times with reduced launch overhead.
+
+{note} Finalization may be a computationally expensive operation as the runtime
+may be able to perform optimizations based on the graph structure.
+However it can also perform work ahead of time that would normally be needed
+immediately prior to command execution.
+{endnote}
 
 A [code]#command_graph# can be submitted to both in-order and out-of-order
 queues.
@@ -369,7 +371,7 @@ properties that are defined by this extension.
 [source, role=synopsis,id=api:khr-command-graph-ctx-dev-ctor]
 ----
 command_graph(const context& syclContext, const device& syclDevice,
-                const property_list& propList = {})
+              const property_list& propList = {})
 ----
 _Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
 
@@ -383,7 +385,7 @@ via an instance of [code]#property_list#.
 _Throws:_
 
 * An [code]#exception# with the [code]#errc::invalid# error code if
-  [code]#syclDevice# does not report support for this extension.
+  [code]#syclDevice# does have [code]#aspect::khr_limited_graph#.
 
 * An [code]#exception# with the [code]#errc::invalid# error code if
   [code]#syclDevice# is not associated with [code]#syclContext#.
@@ -414,11 +416,12 @@ _Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
 _Effects:_ Synchronous operation that creates a new [code]#command_graph# in the
 executable state with a fixed topology that can be submitted for execution on
 any queue sharing the device and context associated with the graph.
-It is valid to call this method multiple times to create subsequent executable
-graphs.
+It is valid to call this member function multiple times to create subsequent
+executable graphs.
 It is also valid to continue to add new nodes to the modifiable graph instance
 after calling this function.
-It is valid to finalize an empty graph instance with no recorded commands.
+It is valid to finalize an empty graph instance with no recorded or explicitly
+added commands.
 Zero or more properties can be provided to this function via an instance of
 [code]#property_list#.
 Valid properties for this function are defined in
@@ -433,19 +436,16 @@ graph contains a command that is not supported by the device.
 [source, role=synopsis,id=api:khr-command-graph-begin-recording]
 ----
 void begin_recording(queue& recordingQueue,                     (1)
-                       const property_list& propList = {})
+                     const property_list& propList = {})
 
 void begin_recording(const std::vector<queue>& recordingQueues, (2)
-                       const property_list& propList = {})
+                     const property_list& propList = {})
 
 ----
 _Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
 
-_Effects (1):_ Synchronously changes the state of [code]#recordingQueue# to the
-[code]#queue_state::recording# state.
-
-_Effects (2):_ Synchronously changes the state of each queue in
-[code]#recordingQueues# to the [code]#queue_state::recording# state.
+_Effects (1)(2):_ Synchronously changes the state of the provided queue(s) to
+the [code]#queue_state::recording# state.
 
 This function accepts a [code]#property_list# parameter for future use but
 currently there are no properties defined for it in this extension.
@@ -476,20 +476,15 @@ to the graph and sets their state to [code]#queue_state::executing#.
 This operation is a no-op for any queue in the graph that is already in the
 [code]#queue_state::executing# state.
 
-_Effects (2):_ Synchronously changes the state of [code]#recordingQueue# to the
+_Effects (2)(3):_ Synchronously changes the state of the provided queue(s) to
+the [code]#queue_state::executing# state.
+This operation is a no-op for any queue already in the
 [code]#queue_state::executing# state.
-This operation is a no-op if [code]#recordingQueue# is already in the
-[code]#queue_state::executing# state.
-
-_Effects (3):_ Synchronously changes the state of each queue in
-[code]#recordingQueues# to the [code]#queue_state::executing# state.
-This operation is a no-op for any queue in [code]#recordingQueues# that is
-already in the [code]#queue_state::executing# state.
 
 _Throws (2)(3):_
 
-* An [code]#exception# with the [code]#errc::invalid# error code if any queue is
-recording to a different graph.
+* An [code]#exception# with the [code]#errc::invalid# error code if any provided
+queue is recording to a different graph.
 
 .[apititle]#khr::command_graph::add (empty node)#
 [source, role=synopsis,id=api:khr-command-graph-add-empty]
@@ -515,13 +510,13 @@ queue is recording commands to the graph.
 [source, role=synopsis,id=api:khr-command-graph-add]
 ----
 template <typename T>
-  node add(T cgf, const property_list& propList = {})
+node add(T cgf, const property_list& propList = {})
 ----
 _Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
 
-_Effects:_ The [code]#cgf# command group function behaves in much the same way
-as the command group function passed to [code]#queue::submit# unless explicitly
-stated otherwise.
+_Effects:_ The [code]#cgf# command group function behaves in the same way as the
+command group function passed to [code]#queue::submit# unless explicitly stated
+otherwise.
 Code in the function is evaluated synchronously, before the function returns
 back to [code]#command_graph::add#, with the exception of any SYCL commands
 (e.g. kernels, or explicit memory copy operations).
@@ -544,7 +539,7 @@ _Throws:_
 * An [code]#exception# with the [code]#errc::invalid# error code if the graph
   wasn't created with the
   [code]#property::command_graph::assume_buffer_outlives_graph# property and
-  this command uses a buffer.
+  this command uses an accessor.
  
 .[apititle]#khr::command_graph::make_edge#
 [source, role=synopsis,id=api:khr-command-graph-make-edge]
