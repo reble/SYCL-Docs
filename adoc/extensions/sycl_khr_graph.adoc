@@ -759,3 +759,14 @@ public:
 === Buffer limitations
 
 === Error handling
+
+== Open issues/questions
+
+=== Filesystem usage in print_graph
+
+We are considering the usage of [code]#std::filesystem# to replace the
+[code]#std::string# filepath parameter of [code]#command_graph::print_graph()#.
+This would provide a more portable interface for interacting with the filesystem
+when writing out graph dot files, but still allow the same usage from a user
+perspective.
+For example, constructing from strings or string literals.
