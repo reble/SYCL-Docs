@@ -577,8 +577,12 @@ _Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
 
 _Effects:_ Synchronous operation that writes a DOT formatted description of the
 graph to the provided [code]#path#.
-By default, this includes the graph topology, node types, node id, and kernel
-names.
+If [code]#path# is a path to a file it will be overwritten.
+If [code]#path# is a path to a directory a new file will be written with a
+unique filename.
+The format of those filenames is implementation-defined.
+By default, the printed graph includes the graph topology, node types, node ids,
+and kernel names.
 [code]#verbose# can be set to true to write more detailed information about each
 node type such as kernel arguments, copy source, and destination addresses.
 
