@@ -348,6 +348,9 @@ that modifiable graph have no effect on the executable graph(s) created from
 it.
 A graph in this state is ready for execution, but can no longer have new nodes
 or edges added to it.
+
+When an executable graph is destroyed, the underlying resources will be freed
+only once any enqueued submissions of the graph have completed.
 |====
 
 === Command-graph class interface
