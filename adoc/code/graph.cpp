@@ -17,10 +17,10 @@ int main() {
   float* AOld = malloc_device<float>(N, myQueue);
   float* ANew = malloc_device<float>(N, myQueue);
 
-    // Simple 1D stencil function to be used by a parallel kernel 
-    auto step = [=](sycl::id<1> index) {
-      ANew[index + 1] = AOld[index] / 2 + AOld[index + 2] / 2;
-    };
+  // Simple 1D stencil function to be used by a parallel kernel 
+  auto step = [=](sycl::id<1> index) {
+    ANew[index + 1] = AOld[index] / 2 + AOld[index + 2] / 2;
+  };
 
   khr::command_graph myGraph{myQueue};
 
