@@ -9,6 +9,11 @@ using namespace sycl;  // (optional) avoids need for "sycl::" before SYCL names
 constexpr size_t N = 100;
 constexpr size_t Iter = 10;
 
+// This example illustrates a simplified iterative 1D solver
+// which is recorded into a graph and replayed.
+// Because input and output arrays are swapped after each iteration,
+// we record two iterations into an immutable graph that
+// can be executed consecutively. 
 int main() {
   // Create a queue to work on
   queue myQueue({property::queue::in_order{}});
@@ -26,9 +31,6 @@ int main() {
 
   myGraph.begin_recording(myQueue);
 
-  // Unroll iterative 1D solver by a factor of two to enable
-  // recording into an immutable graph
-  //
   // Record an asynchronous kernel to compute even timesteps
   myQueue.submit([&](handler& cgh) {
     cgh.parallel_for(range<1>{N - 2}, step);
