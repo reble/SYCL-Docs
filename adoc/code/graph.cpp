@@ -13,7 +13,7 @@ constexpr size_t Iter = 10;
 // which is recorded into a graph and replayed.
 // Because input and output arrays are swapped after each iteration,
 // we record two iterations into an immutable graph that
-// can be executed consecutively. 
+// can be executed consecutively.
 int main() {
   // Create a queue to work on
   queue myQueue({property::queue::in_order{}});
@@ -22,7 +22,7 @@ int main() {
   float* AOld = malloc_device<float>(N, myQueue);
   float* ANew = malloc_device<float>(N, myQueue);
 
-  // Simple 1D stencil function to be used by a parallel kernel 
+  // Simple 1D stencil function to be used by a parallel kernel
   auto step = [=](sycl::id<1> index) {
     ANew[index + 1] = AOld[index] / 2 + AOld[index + 2] / 2;
   };
@@ -32,16 +32,14 @@ int main() {
   myGraph.begin_recording(myQueue);
 
   // Record an asynchronous kernel to compute even timesteps
-  myQueue.submit([&](handler& cgh) {
-    cgh.parallel_for(range<1>{N - 2}, step);
-  });
+  myQueue.submit(
+      [&](handler& cgh) { cgh.parallel_for(range<1>{N - 2}, step); });
 
   std::swap(AOld, ANew);
 
   // Record an asynchronous kernel to compute odd timesteps
-  myQueue.submit([&](handler& cgh) {
-    cgh.parallel_for(range<1>{N - 2}, step);
-  });
+  myQueue.submit(
+      [&](handler& cgh) { cgh.parallel_for(range<1>{N - 2}, step); });
 
   myGraph.end_recording();
 
