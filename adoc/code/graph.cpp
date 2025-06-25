@@ -10,36 +10,35 @@ constexpr size_t N = 100;
 constexpr size_t Iter = 10;
 
 int main() {
-  // Create a queue to work on.
+  // Create a queue to work on
   queue myQueue({property::queue::in_order{}});
 
   // Create some 1D arrays of float
   float* AOld = malloc_device<float>(N, myQueue);
   float* ANew = malloc_device<float>(N, myQueue);
 
+    // Simple 1D stencil function to be used by a parallel kernel 
+    auto step = [=](sycl::id<1> index) {
+      ANew[index + 1] = AOld[index] / 2 + AOld[index + 2] / 2;
+    };
+
   khr::command_graph myGraph{myQueue};
 
   myGraph.begin_recording(myQueue);
 
   // Unroll iterative 1D solver by a factor of two to enable
-  // recording into an immutable graph.
+  // recording into an immutable graph
   //
   // Record an asynchronous kernel to compute even timesteps
   myQueue.submit([&](handler& cgh) {
-    // Enqueue a parallel kernel iterating on a N 1D iteration space
-    cgh.parallel_for(range<1>{N - 2}, [=](id<1> index) {
-      ANew[index + 1] = AOld[index] / 2 + AOld[index + 2] / 2;
-    });
+    cgh.parallel_for(range<1>{N - 2}, step);
   });
 
   std::swap(AOld, ANew);
 
   // Record an asynchronous kernel to compute odd timesteps
   myQueue.submit([&](handler& cgh) {
-    // Enqueue a parallel kernel iterating on a N 1D iteration space
-    cgh.parallel_for(range<1>{N - 2}, [=](id<1> index) {
-      ANew[index + 1] = AOld[index] / 2 + AOld[index + 2] / 2;
-    });
+    cgh.parallel_for(range<1>{N - 2}, step);
   });
 
   myGraph.end_recording();
