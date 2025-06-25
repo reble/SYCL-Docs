@@ -432,9 +432,6 @@ Valid properties for this function are defined in
 
 _Returns:_ A new [code]#command_graph# object in the executable state.
 
-_Throws:_ An [code]#exception# with the [code]#errc::invalid# error code if the
-graph contains a command that is not supported by the device.
-
 .[apititle]#khr::command_graph::begin_recording#
 [source, role=synopsis,id=api:khr-command-graph-begin-recording]
 ----
@@ -509,6 +506,7 @@ _Returns:_ The empty node which has been added to the graph.
 _Throws:_ An [code]#exception# with the [code]#errc::invalid# error code if a
 queue is recording commands to the graph.
 
+
 .[apititle]#khr::command_graph::add#
 [source, role=synopsis,id=api:khr-command-graph-add]
 ----
@@ -543,6 +541,9 @@ _Throws:_
   wasn't created with the
   [code]#property::command_graph::assume_buffer_outlives_graph# property and
   this command uses an accessor.
+* An [code]#exception# with the [code]#errc::invalid# error code if the SYCL
+  command defined in [code]#cgf# is not supported by the device associated with
+  the graph.
  
 .[apititle]#khr::command_graph::make_edge#
 [source, role=synopsis,id=api:khr-command-graph-make-edge]
@@ -574,7 +575,7 @@ _Throws:_
 .[apititle]#khr::command_graph::print_graph#
 [source, role=synopsis,id=api:khr-command-graph-print-graph]
 ----
-void print_graph(std::string path, bool verbose = false) const
+void print_graph(const std::string& path, bool verbose = false) const
 ----
 _Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
 
