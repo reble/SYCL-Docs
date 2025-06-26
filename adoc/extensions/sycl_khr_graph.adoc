@@ -279,7 +279,7 @@ a@ Constructs a [code]#depends_on_all_leaves# property instance.
 == Command-graph class
 
 The [code]#command_graph# class represents a directed acyclic graph of nodes,
-where each node represents a single command with zero or more dependencies
+where each node represents zero or more commands with zero or more dependencies
 between them.
 For the list of supported node types see
 <<subsec:khr-graph-supported-node-types>>.
