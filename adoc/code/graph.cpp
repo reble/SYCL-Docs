@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <sycl/sycl.hpp>
-#include <utility>
 using namespace sycl;  // (optional) avoids need for "sycl::" before SYCL names
 
 constexpr size_t N = 100;
@@ -12,8 +11,8 @@ constexpr size_t Iter = 10;
 // This example illustrates a simplified iterative 1D solver
 // which is recorded into a graph and replayed.
 // Because input and output arrays are swapped after each iteration,
-// we record two iterations into an immutable graph that
-// can be executed consecutively.
+// we record two iterations into a single command graph.
+// Resulting graph is executed consecutively after finalizing.
 int main() {
   // Create a queue to work on
   queue myQueue({property::queue::in_order{}});
@@ -22,24 +21,23 @@ int main() {
   float* AOld = malloc_device<float>(N, myQueue);
   float* ANew = malloc_device<float>(N, myQueue);
 
-  // Simple 1D stencil function to be used by a parallel kernel
-  auto step = [=](sycl::id<1> index) {
-    ANew[index + 1] = AOld[index] / 2 + AOld[index + 2] / 2;
-  };
-
   khr::command_graph myGraph{myQueue};
 
   myGraph.begin_recording(myQueue);
 
   // Record an asynchronous kernel to compute even timesteps
-  myQueue.submit(
-      [&](handler& cgh) { cgh.parallel_for(range<1>{N - 2}, step); });
-
-  std::swap(AOld, ANew);
+  myQueue.submit([&](handler& cgh) {
+    cgh.parallel_for(range<1>{N - 2}, [=](id<1> index) {
+      ANew[index + 1] = AOld[index] / 2 + AOld[index + 2] / 2;
+    });
+  });
 
   // Record an asynchronous kernel to compute odd timesteps
-  myQueue.submit(
-      [&](handler& cgh) { cgh.parallel_for(range<1>{N - 2}, step); });
+  myQueue.submit([&](handler& cgh) {
+    cgh.parallel_for(range<1>{N - 2}, [=](id<1> index) {
+      AOld[index + 1] = ANew[index] / 2 + ANew[index + 2] / 2;
+    });
+  });
 
   myGraph.end_recording();
 
