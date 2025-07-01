@@ -76,11 +76,12 @@ transitive dependencies between other nodes, similar to a barrier.
 Dependencies between nodes are defined by their edges which represent a "happens
 before" relationship.
 Edges can either be specified explicitly or inferred from the existing SYCL
-mechanisms for defining dependencies between <<command-group, command-groups>>.
+mechanisms for defining dependencies between <<command-group>>.
 
 The [code]#node# class provides the common reference semantics as defined in
 <<sec:reference-semantics>>.
 
+[[subsec:khr-graph-supported-node-types]]
 === Supported node types
 
 The command types supported by the [code]#node# class are listed in
@@ -162,7 +163,7 @@ a@
 ----
 khr::node_type::host_task
 ----
-a@ Represents a SYCL <<host-task, Host Task>> command.
+a@ Represents a SYCL <<host-task>> command.
 
 |====
 
@@ -227,7 +228,7 @@ _Throws:_ An [code]#exception# with error code [code]#errc::invalid# if
 
 '''
 
-[[subsec:khr-node-properties]]
+[[subsec:khr-graph-node-properties]]
 === Node properties
 
 The properies that can be provided when adding a [code]#node# to a graph are
@@ -283,112 +284,420 @@ a@ Constructs a [code]#depends_on_all_leaves# property instance.
 
 |====
 
-== Graph
+[[sec:khr-graph-command-graph]]
+== Command-graph class
 
-[source, c++]
-----
-namespace sycl::khr {
-// State of a graph
-enum class graph_state {
-  modifiable,
-  executable
-};
+The [code]#command_graph# class represents a directed acyclic graph of nodes,
+where each node represents zero or more commands with zero or more dependencies
+between them.
+For the list of supported node types see
+<<subsec:khr-graph-supported-node-types>>.
 
-// New object representing graph
-template<graph_state State = graph_state::modifiable>
-class command_graph {};
+A [code]#command_graph# is associated with a single SYCL device and context on
+which nodes representing device commands will be executed.
+The execution of a graph is considered complete when all of its nodes have
+completed.
 
-template<>
-class command_graph<graph_state::modifiable> {
-public:
-  command_graph(const context& syclContext, const device& syclDevice,
-                const property_list& propList = {});
+A [code]#command_graph# is built up by one or both of recording queue
+submissions or explicitly adding nodes, then once the graph is complete, the
+graph instance is finalized into an executable variant - a fixed snapshot of the
+graph which can no longer have nodes added to it.
+After finalization the graph can be submitted for execution on a queue one or
+more times with reduced launch overhead.
 
-  command_graph(const queue& syclQueue,
-                const property_list& propList = {});
+{note} Finalization may be a computationally expensive operation as the runtime
+may be able to perform optimizations based on the graph structure.
+However it can also perform work ahead of time that would normally be needed
+immediately prior to command execution.
+{endnote}
 
-  command_graph<graph_state::executable>
-  finalize(const property_list& propList = {}) const;
-
-  void begin_recording(queue& recordingQueue, const property_list& propList = {});
-  void begin_recording(const std::vector<queue>& recordingQueues, const property_list& propList = {});
-
-  void end_recording();
-  void end_recording(queue& recordingQueue);
-  void end_recording(const std::vector<queue>& recordingQueues);
-
-  node add(const property_list& propList = {});
-
-  template<typename T>
-  node add(T cgf, const property_list& propList = {});
-
-  void make_edge(node& src, node& dest);
-
-  void print_graph(std::string path, bool verbose = false) const;
-
-  std::vector<node> get_nodes() const;
-  std::vector<node> get_root_nodes() const;
-};
-
-template<>
-class command_graph<graph_state::executable> {
-public:
-    command_graph() = delete;
-};
-
-}  // namespace sycl::khr
-----
+A [code]#command_graph# can be submitted to both in-order and out-of-order
+queues.
+Any dependencies between the graph and other command-groups submitted to the
+same queue will be respected.
+However, the in-order and out-of-order properties of the queue have no effect on
+how the nodes within the graph are executed (e.g. the graph nodes without
+dependency edges may execute out-of-order even when using an in-order queue).
+For further information about how the properties of a queue affect graphs see
+<<subsec:khr-graph-queue-properties>>
 
 === Graph state
 
-[[subsec:khr-graph-properties]]
-=== Graph properties
+The [code]#command_graph# class is templated on the [code]#graph_state# enum.
+The descriptions of the values of this enum are detailed in
+<<table.command_graph.graph_state>>.
 
-==== No-cycle-check property
+[[table.command_graph.graph_state]]
+.Values of the [code]#graph_state# enum.
+[width="100%",options="header",separator="@",cols="30%,70%"]
+|====
+a@ Value a@ Description
 
-[source,c++]
+a@
+[source]
 ----
-namespace sycl::khr::property::graph {
+graph_state::modifiable
+----
+
+a@ The [code]#command_graph# is under construction and new nodes or edges may
+be added to it at any time. Graphs are created in this state and cannot be executed until
+they have been finalized into the [code]#executable# state.
+
+This is the default template argument for the [code]#command_graph# class.
+
+a@
+[source]
+----
+graph_state::executable
+----
+
+a@ A [code]#command_graph# in this state is a fixed snapshot of the state and
+topology of the modifiable graph it was finalized from. Subsequent changes to
+that modifiable graph have no effect on the executable graph(s) created from
+it.
+A graph in this state is ready for execution, but can no longer have new nodes
+or edges added to it.
+
+When an executable graph is destroyed, the underlying resources will be freed
+only once any enqueued submissions of the graph have completed.
+|====
+
+=== Command-graph class interface
+
+[source,,linenums]
+----
+include::{header_dir}/extensions/khr_graph/command_graph.h[lines=4..-1]
+----
+
+[[subsec:khr-graph-command-graph-ctors]]
+=== Constructors
+
+All [code]#command_graph# constructors take a parameter named [code]#propList#
+which allows the application to pass zero or more properties.
+These properties may specify additional effects of the constructor and resulting
+[code]#command_graph# object.
+See <<subsec:khr-graph-command-graph-properties>> for the [code]#command_graph#
+properties that are defined by this extension.
+
+.[apititle]#Context/device constructor#
+[source, role=synopsis,id=api:khr-command-graph-ctx-dev-ctor]
+----
+command_graph(const context& syclContext, const device& syclDevice,
+              const property_list& propList = {})
+----
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Effects:_ Creates a SYCL [code]#command_graph# object in the modifiable state
+for context [code]#syclContext# and device [code]#syclDevice#.
+[code]#syclDevice# and [code]#syclContext# are immutable characteristics of the
+graph.
+Zero or more properties can be provided to the constructed [code]#command_graph#
+via an instance of [code]#property_list#.
+
+_Throws:_
+
+* An [code]#exception# with the [code]#errc::invalid# error code if
+  [code]#syclDevice# does have [code]#aspect::khr_limited_graph#.
+
+* An [code]#exception# with the [code]#errc::invalid# error code if
+  [code]#syclDevice# is not associated with [code]#syclContext#.
+
+.[apititle]#Queue constructor#
+[source, role=synopsis,id=api:khr-command-graph-queue-ctor]
+----
+command_graph(const queue& syclQueue, const property_list& propList = {})
+----
+
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Effects:_ Equivalent to [code]#command_graph(syclQueue.get_context(),
+syclQueue.get_device(), propList)#
+
+[[subsec:khr-graph-command-graph-member-funcs]]
+=== Member functions
+
+
+.[apidef]#khr::command_graph::finalize#
+[source, role=synopsis,id=api:khr-command-graph-finalize]
+----
+command_graph<graph_state::executable> finalize(
+      const property_list& propList = {}) const
+----
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Effects:_ Synchronous operation that creates a new [code]#command_graph# in the
+executable state with a fixed topology that can be submitted for execution on
+any queue sharing the device and context associated with the graph.
+It is valid to call this member function multiple times to create subsequent
+executable graphs.
+It is also valid to continue to add new nodes to the modifiable graph instance
+after calling this function.
+It is valid to finalize an empty graph instance with no recorded or explicitly
+added commands.
+Zero or more properties can be provided to this function via an instance of
+[code]#property_list#.
+Valid properties for this function are defined in
+<<subsec:khr-graph-command-graph-properties>>.
+
+_Returns:_ A new [code]#command_graph# object in the executable state.
+
+.[apititle]#khr::command_graph::begin_recording#
+[source, role=synopsis,id=api:khr-command-graph-begin-recording]
+----
+void begin_recording(queue& recordingQueue,                     (1)
+                     const property_list& propList = {})
+
+void begin_recording(const std::vector<queue>& recordingQueues, (2)
+                     const property_list& propList = {})
+
+----
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Effects (1)(2):_ Synchronously changes the state of the provided queue(s) to
+the [code]#queue_state::recording# state.
+
+This function accepts a [code]#property_list# parameter for future use but
+currently there are no properties defined for it in this extension.
+
+_Throws (1)(2):_
+
+* An [code]#exception# with the [code]#errc::invalid# error code if any queue is
+  currently recording to a graph.
+
+* An [code]#exception# with the [code]#errc::invalid# error code if the device
+  or context associated with any queue is not the same as those used to create
+  the graph.
+
+
+.[apititle]#khr::command_graph::end_recording#
+[source, role=synopsis,id=api:khr-command-graph-end-recording]
+----
+void end_recording()                                          (1)
+
+void end_recording(queue& recordingQueue)                     (2)
+
+void end_recording(const std::vector<queue>& recordingQueues) (3)
+----
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Effects (1):_ Synchronously finishes recording on all queues that are recording
+to the graph and sets their state to [code]#queue_state::executing#.
+This operation is a no-op for any queue in the graph that is already in the
+[code]#queue_state::executing# state.
+
+_Effects (2)(3):_ Synchronously changes the state of the provided queue(s) to
+the [code]#queue_state::executing# state.
+This operation is a no-op for any queue already in the
+[code]#queue_state::executing# state.
+
+_Throws (2)(3):_
+
+* An [code]#exception# with the [code]#errc::invalid# error code if any provided
+queue is recording to a different graph.
+
+.[apititle]#khr::command_graph::add (empty node)#
+[source, role=synopsis,id=api:khr-command-graph-add-empty]
+----
+node add(const property_list& propList = {})
+----
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Effects:_ This creates an empty node which contains no command.
+Empty nodes can be used to create transitive dependencies between other graph
+nodes, similar to a barrier.
+Zero or more properties can be provided to this function via an instance of
+[code]#property_list#.
+Valid properties for this function are defined in
+<<subsec:khr-graph-node-properties>>.
+
+_Returns:_ The empty node which has been added to the graph.
+
+_Throws:_ An [code]#exception# with the [code]#errc::invalid# error code if a
+queue is recording commands to the graph.
+
+
+.[apititle]#khr::command_graph::add#
+[source, role=synopsis,id=api:khr-command-graph-add]
+----
+template <typename T>
+node add(T cgf, const property_list& propList = {})
+----
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Effects:_ The [code]#cgf# command group function behaves in the same way as the
+command group function passed to [code]#queue::submit# unless explicitly stated
+otherwise.
+Code in the function is evaluated synchronously, before the function returns
+back to [code]#command_graph::add#, with the exception of any SYCL commands
+(e.g. kernels, or explicit memory copy operations).
+These commands are captured into the graph and executed asynchronously when the
+graph is submitted to a queue.
+The requisites of [code]#cgf# will be used to identify any dependent nodes in
+the graph to form edges with.
+Zero or more properties can be provided to this function via an instance of
+[code]#property_list#.
+Valid properties for this function are defined in
+<<subsec:khr-graph-node-properties>>.
+
+
+_Returns:_ The node which has been added to the graph.
+
+_Throws:_
+
+* An [code]#exception# with the [code]#errc::invalid# error code if a queue is
+  recording commands to the graph.
+* An [code]#exception# with the [code]#errc::invalid# error code if the graph
+  wasn't created with the
+  [code]#property::command_graph::assume_buffer_outlives_graph# property and
+  this command uses an accessor.
+* An [code]#exception# with the [code]#errc::invalid# error code if the SYCL
+  command defined in [code]#cgf# is not supported by the device associated with
+  the graph.
+ 
+.[apititle]#khr::command_graph::make_edge#
+[source, role=synopsis,id=api:khr-command-graph-make-edge]
+----
+void make_edge(node& src, node& dest)
+----
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Effects:_ Creates a dependency between two nodes representing a happens-before
+relationship.
+Node [code]#dest# will be dependent on [code]#src#.
+
+_Throws:_
+
+* An [code]#exception# with the [code]#errc::invalid# error code if a queue is
+  recording commands to the graph object.
+
+* An [code]#exception# with the [code]#errc::invalid# error code if [code]#src#
+  or [code]#dest# are not valid nodes assigned to the graph object.
+
+* An [code]#exception# with the [code]#errc::invalid# error code if [code]#src#
+  and [code]#dest# are the same node.
+
+* An [code]#exception# with the [code]#errc::invalid# error code if the
+  resulting dependency would lead to a cycle in the graph.
+  This error is omitted when [code]#property::command_graph::no_cycle_check# is
+  set.
+
+.[apititle]#khr::command_graph::print_graph#
+[source, role=synopsis,id=api:khr-command-graph-print-graph]
+----
+void print_graph(const std::string& path, bool verbose = false) const
+----
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Effects:_ Synchronous operation that writes a DOT formatted description of the
+graph to the provided [code]#path#.
+If [code]#path# is a path to a file it will be overwritten.
+If [code]#path# is a path to a directory a new file will be written with a
+unique filename.
+The format of those filenames is implementation-defined.
+By default, the printed graph includes the graph topology, node types, node ids,
+and kernel names.
+[code]#verbose# can be set to true to write more detailed information about each
+node type such as kernel arguments, copy source, and destination addresses.
+
+_Throws:_ An [code]#exception# with the [code]#errc::invalid# error code if the
+write operation failed.
+
+.[apititle]#khr::command_graph::get_nodes#
+[source, role=synopsis,id=api:khr-command-graph-get-nodes]
+----
+std::vector<node> get_nodes() const noexcept
+----
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Returns:_ A list of all the nodes present in the graph in the order that they
+were added.
+
+.[apidef]#khr::command_graph::get_root_nodes#
+[source, role=synopsis,id=api:khr-command-graph-get-root-nodes]
+----
+std::vector<node> get_root_nodes() const noexcept
+----
+_Constraints:_ [code]#State# is [code]#graph_state::modifiable#.
+
+_Returns:_ A list of all nodes in the graph which have no dependencies.
+
+
+
+[[subsec:khr-graph-command-graph-properties]]
+=== Command-graph properties
+
+This section describes the properties that can be used with the
+[code]#command_graph# class.
+
+'''
+.[apidef]#khr::property::command_graph::no_cycle_check#
+[source, role=synopsis,id=api:khr-property-command-graph-no-cycle-check]
+----
+namespace sycl::khr::property::command_graph{
 class no_cycle_check {
-  public:
-    no_cycle_check() = default;
+ public:
+  no_cycle_check() = default;
 };
-}
+} // namespace sycl::khr::property::command_graph
 ----
 
-[[subsec:assume-buffer-outlives-graph-property]]
-==== Assume-buffer-outlives-graph property
+The [code]#property::command_graph::no_cycle_check# property disables any checks
+if a newly added dependency will lead to a cycle in a specific
+[code]#command_graph# and can be passed to a modifiable [code]#command_graph# on
+construction via the property list parameter.
+As a result, no errors are reported when a function tries to create a cyclic
+dependency.
+Thus, it's the user's responsibility to create an acyclic graph for execution
+when this property is set.
+Creating a cycle in a [code]#command_graph# puts that [code]#command_graph# into
+an undefined state.
+Any further operations performed on a [code]#command_graph# in this state will
+result in undefined behavior.
 
-[source,c++]
+'''
+
+.[apidef]#khr::property::command_graph::assume_buffer_outlives_graph#
+[source, role=synopsis,id=api:khr-property-command-graph-assume-buffer-outlives-graph]
 ----
-namespace sycl::khr::property::graph {
+namespace sycl::khr::property::command_graph{
 class assume_buffer_outlives_graph {
-  public:
-    assume_buffer_outlives_graph() = default;
+ public:
+  assume_buffer_outlives_graph() = default;
 };
-}
+} // namespace sycl::khr::property::command_graph
 ----
 
-[[subsec:enable-profiling]]
-=== Enable-profiling property
+The [code]#property::command_graph::assume_buffer_outlives_graph# property
+disables <<subsec:khr-graph-buffer-limitations, restrictions on using buffers>>
+in a [code]#command_graph# and can be passed to a modifiable
+[code]#command_graph# on construction via the property list parameter.
+This property represents a promise from the user that any buffer which is used
+in a graph will be kept alive on the host for the lifetime of the graph.
+Destroying that buffer during the lifetime of a [code]#command_graph#
+constructed with this property results in undefined behavior.
 
-[source,c++]
+'''
+
+.[apidef]#khr::property::command_graph::enable_profiling#
+[source, role=synopsis,id=api:khr-property-command-graph-enable-profiling]
 ----
-namespace sycl::khr::graph {
+namespace sycl::khr::property::command_graph{
 class enable_profiling {
-  public:
-    enable_profiling() = default;
+ public:
+  enable_profiling() = default;
 };
-}
+} // namespace sycl::khr::property::command_graph
 ----
 
-=== Graph member functions
+The [code]#property::command_graph::enable_profiling# property enables profiling
+events returned from submissions of the executable graph and can be passed to
+[code]#command_graph::finalize#.
+Passing this property may prevent the graph from performing optimizations which
+may negatively affect graph execution performance.
+An error will be thrown when attempting to profile an event from a graph
+submission that was created without this property.
 
-==== Constructor of the `command_graph` class
-
-==== Member functions of the `command_graph` class
-
-==== Member functions of the `command_graph` class for queue recording
+'''
 
 == Queue class modifications
 
@@ -431,7 +740,8 @@ public:
 
 ==== Example
 
-=== Queue properties
+[[subsec:khr-graph-queue-properties]]
+==== Queue Properties
       
 === New queue member functions
 
@@ -456,6 +766,18 @@ public:
 
 === Queue limitations
 
+[[subsec:khr-graph-buffer-limitations]]
 === Buffer limitations
 
 === Error handling
+
+== Open issues/questions
+
+=== Filesystem usage in print_graph
+
+We are considering the usage of [code]#std::filesystem# to replace the
+[code]#std::string# filepath parameter of [code]#command_graph::print_graph()#.
+This would provide a more portable interface for interacting with the filesystem
+when writing out graph dot files, but still allow the same usage from a user
+perspective.
+For example, constructing from strings or string literals.
