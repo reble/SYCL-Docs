@@ -2,24 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 namespace sycl::khr {
-namespace property {
-namespace command_graph {
-class no_cycle_check {
- public:
-  no_cycle_check() = default;
-};
-
-class assume_buffer_outlives_graph {
- public:
-  assume_buffer_outlives_graph() = default;
-};
-
-class enable_profiling {
- public:
-  enable_profiling() = default;
-};
-}  // namespace command_graph
-}  // namespace property
 
 enum class graph_state : /*unspecified*/ { modifiable, executable };
 

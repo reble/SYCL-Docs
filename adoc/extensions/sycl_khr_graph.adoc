@@ -617,84 +617,78 @@ _Returns:_ A list of all nodes in the graph which have no dependencies.
 [[subsec:khr-graph-command-graph-properties]]
 === Command-graph properties
 
-The properies that can be used with the [code]#command_graph# class are
-described in <<table.properties.graph.command_graph>>.
+This section describes the properties that can be used with the
+[code]#command_graph# class.
 
-[[table.properties.graph.command_graph]]
-.Properties supported by the [code]#command_graph# class
-[width="100%",options="header",separator="@",cols="45%,55%"]
-|====
-@ Property @ Description
-a@
-[source]
+'''
+.[apidef]#khr::property::command_graph::no_cycle_check#
+[source, role=synopsis,id=api:khr-property-command-graph-no-cycle-check]
 ----
-khr::property::command_graph::no_cycle_check
+namespace sycl::khr::property::command_graph{
+class no_cycle_check {
+ public:
+  no_cycle_check() = default;
+};
+} // namespace sycl::khr::property::command_graph
 ----
-a@ The [code]#property::command_graph::no_cycle_check# property disables any checks if a
-newly added dependency will lead to a cycle in a specific [code]#command_graph#
-and can be passed to a modifiable [code]#command_graph# on construction via the
-property list parameter. As a result, no errors are reported when a function
-tries to create a cyclic dependency. Thus, it's the user's responsibility to
-create an acyclic graph for execution when this property is set. Creating a
-cycle in a [code]#command_graph# puts that [code]#command_graph# into an
-undefined state. Any further operations performed on a [code]#command_graph# in
-this state will result in undefined behavior.
-a@
-[source]
-----
-khr::property::command_graph::assume_buffer_outlives_graph
-----
-a@ The [code]#property::command_graph::assume_buffer_outlives_graph# property disables
-<<subsec:khr-graph-buffer-limitations, restrictions on using buffers>> in a
+
+The [code]#property::command_graph::no_cycle_check# property disables any checks
+if a newly added dependency will lead to a cycle in a specific
 [code]#command_graph# and can be passed to a modifiable [code]#command_graph# on
-construction via the property list parameter. This property represents a promise
-from the user that any buffer which is used in a graph will be kept alive on the
-host for the lifetime of the graph. Destroying that buffer during the lifetime
-of a [code]#command_graph# constructed with this property results in undefined
-behavior.
-a@
-[source]
+construction via the property list parameter.
+As a result, no errors are reported when a function tries to create a cyclic
+dependency.
+Thus, it's the user's responsibility to create an acyclic graph for execution
+when this property is set.
+Creating a cycle in a [code]#command_graph# puts that [code]#command_graph# into
+an undefined state.
+Any further operations performed on a [code]#command_graph# in this state will
+result in undefined behavior.
+
+'''
+
+.[apidef]#khr::property::command_graph::assume_buffer_outlives_graph#
+[source, role=synopsis,id=api:khr-property-command-graph-assume-buffer-outlives-graph]
 ----
-khr::property::command_graph::enable_profiling
+namespace sycl::khr::property::command_graph{
+class assume_buffer_outlives_graph {
+ public:
+  assume_buffer_outlives_graph() = default;
+};
+} // namespace sycl::khr::property::command_graph
 ----
-a@ The [code]#property::command_graph::enable_profiling# property enables profiling
+
+The [code]#property::command_graph::assume_buffer_outlives_graph# property
+disables <<subsec:khr-graph-buffer-limitations, restrictions on using buffers>>
+in a [code]#command_graph# and can be passed to a modifiable
+[code]#command_graph# on construction via the property list parameter.
+This property represents a promise from the user that any buffer which is used
+in a graph will be kept alive on the host for the lifetime of the graph.
+Destroying that buffer during the lifetime of a [code]#command_graph#
+constructed with this property results in undefined behavior.
+
+'''
+
+.[apidef]#khr::property::command_graph::enable_profiling#
+[source, role=synopsis,id=api:khr-property-command-graph-enable-profiling]
+----
+namespace sycl::khr::property::command_graph{
+class enable_profiling {
+ public:
+  enable_profiling() = default;
+};
+} // namespace sycl::khr::property::command_graph
+----
+
+The [code]#property::command_graph::enable_profiling# property enables profiling
 events returned from submissions of the executable graph and can be passed to
-[code]#command_graph::finalize#. Passing this property may prevent the graph
-from performing optimizations which may negatively affect graph execution
-performance. An error will be thrown when attempting to profile an event from a
-graph submission that was created without this property.
+[code]#command_graph::finalize#.
+Passing this property may prevent the graph from performing optimizations which
+may negatively affect graph execution performance.
+An error will be thrown when attempting to profile an event from a graph
+submission that was created without this property.
 
-
-|====
-
-The constructors of the command-graph property classes are listed in the
-<<table.constructors.properties.graph.command_graph>> table.
-
-[[table.constructors.properties.graph.command_graph]]
-.Constructors of the [code]#command_graph# [code]#property# classes
-[width="100%",options="header",separator="@",cols="65%,35%"]
-|====
-@ Constructor @ Description
-a@
-[source]
-----
-khr::property::command_graph::no_cycle_check()
-----
-a@ Constructs a [code]#no_cycle_check# property instance.
-a@
-[source]
-----
-khr::property::command_graph::assume_buffer_outlives_graph()
-----
-a@ Constructs an [code]#assume_buffer_outlives_graph# property instance.
-a@
-[source]
-----
-khr::property::command_graph::enable_profiling()
-----
-a@ Constructs an [code]#enable_profiling# property instance.
-|====
-
+'''
 
 == Queue class modifications
 
